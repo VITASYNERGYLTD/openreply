@@ -41,14 +41,20 @@ async function accountsFromTokenGrants(accessToken: string) {
   if (missing.length) {
     throw new Error(`Unified Login: Meta did not grant required permissions: ${missing.join(", ")}. No Instagram account was connected.`);
   }
-  // Only inspect IDs explicitly named in the Instagram grants of this token.
-  // Never enumerate other businesses or fall back to a hard-coded account ID.
-  const ids = [...new Set((data.granular_scopes ?? [])
+  // Prefer IDs explicitly named in the Instagram grants of this token. When
+  // Meta omits them (all-asset grants), fall back to the operator-configured
+  // META_INSTAGRAM_ACCOUNT_IDS. Either way, an ID is only accepted below if
+  // this token can actually read that Instagram profile, so a configured ID
+  // never grants access the token does not already have.
+  const grantIds = (data.granular_scopes ?? [])
     .filter((grant) => required.includes(grant.scope))
-    .flatMap((grant) => grant.target_ids ?? []))]
+    .flatMap((grant) => grant.target_ids ?? []);
+  const configuredIds = (process.env.META_INSTAGRAM_ACCOUNT_IDS ?? "")
+    .split(",").map((id) => id.trim());
+  const ids = [...new Set(grantIds.length ? grantIds : configuredIds)]
     .filter((id) => typeof id === "string" && /^\d+$/.test(id));
   if (!ids.length) {
-    throw new Error("Unified Login: permissions OK; assigned Instagram accounts=0; explicit Instagram grant IDs=0. Meta may omit IDs for all-asset grants. Account assignment needs diagnosis; repeating login alone is not a fix.");
+    throw new Error("Unified Login: permissions OK; assigned Instagram accounts=0; explicit Instagram grant IDs=0. Meta may omit IDs for all-asset grants. Set META_INSTAGRAM_ACCOUNT_IDS to the Instagram account ID shown under Business settings → Instagram accounts, then reconnect.");
   }
   const accounts: Array<{ id: string; username: string }> = [];
   for (const id of ids) {

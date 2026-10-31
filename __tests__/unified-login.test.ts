@@ -73,11 +73,41 @@ describe("Unified Login", () => {
     expect(next.searchParams.get("after")).toBe("cursor-1");
   });
 
+  const scopes = ["instagram_basic", "instagram_manage_messages", "instagram_manage_comments"];
+  const debugToken = (granular: Array<{ scope: string; target_ids?: string[] }> = []) =>
+    json({ data: { is_valid: true, app_id: "meta-app-1", scopes, granular_scopes: granular } });
+
   it("rejects a login that did not share any Instagram accounts", async () => {
     fetchMock.mockResolvedValueOnce(json({ access_token: "test-token" }))
       .mockResolvedValueOnce(json({ client_business_id: "business-1" }))
-      .mockResolvedValueOnce(json({ data: [] }));
-    await expect(connectUnifiedAccounts("code", redirect)).rejects.toThrow("No Instagram accounts were shared");
+      .mockResolvedValueOnce(json({ data: [] }))
+      .mockResolvedValueOnce(debugToken());
+    await expect(connectUnifiedAccounts("code", redirect)).rejects.toThrow("Set META_INSTAGRAM_ACCOUNT_IDS");
+  });
+
+  it("falls back to configured account IDs only when the token can read them", async () => {
+    vi.stubEnv("META_INSTAGRAM_ACCOUNT_IDS", "17841406826712807, 999");
+    fetchMock.mockResolvedValueOnce(json({ access_token: "test-token" }))
+      .mockResolvedValueOnce(json({ client_business_id: "business-1" }))
+      .mockResolvedValueOnce(json({ data: [] }))
+      .mockResolvedValueOnce(debugToken())
+      .mockResolvedValueOnce(json({ id: "17841406826712807", username: "best4yourhappiness" }))
+      .mockResolvedValueOnce(json({ error: { code: 100 } }, 400));
+    const accounts = await connectUnifiedAccounts("code", redirect);
+    expect(accounts.map((a) => a.username)).toEqual(["best4yourhappiness"]);
+    const probe = new URL(String(fetchMock.mock.calls[4][0]));
+    expect(probe.pathname).toBe("/v26.0/17841406826712807");
+  });
+
+  it("prefers explicit grant IDs over configured IDs", async () => {
+    vi.stubEnv("META_INSTAGRAM_ACCOUNT_IDS", "999");
+    fetchMock.mockResolvedValueOnce(json({ access_token: "test-token" }))
+      .mockResolvedValueOnce(json({ client_business_id: "business-1" }))
+      .mockResolvedValueOnce(json({ data: [] }))
+      .mockResolvedValueOnce(debugToken([{ scope: "instagram_basic", target_ids: ["123"] }]))
+      .mockResolvedValueOnce(json({ id: "123", username: "granted" }));
+    const accounts = await connectUnifiedAccounts("code", redirect);
+    expect(accounts.map((a) => a.instagramId)).toEqual(["123"]);
   });
 
   it("does not echo token exchange secrets in errors", async () => {

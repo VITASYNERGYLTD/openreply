@@ -38,6 +38,12 @@ business ID, and connects all explicitly shared Instagram accounts from
 encrypted credential stores its token, Instagram account ID, client business
 ID, and configuration ID; no database migration is needed.
 
+If Meta grants the permissions but lists no accounts (`assigned Instagram
+accounts=0; explicit Instagram grant IDs=0`), set `META_INSTAGRAM_ACCOUNT_IDS`
+on the web app to the comma-separated Instagram account IDs shown under
+Business settings → Instagram accounts, then reconnect. Each ID is only
+connected if the login token can read that profile.
+
 If the desired Instagram account is missing, check the selected business
 portfolio, account ownership/access, app roles and accepted Instagram tester
 invite. Developer phone verification is separate from granting access to an
