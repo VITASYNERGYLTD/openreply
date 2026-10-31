@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { createI18n, resolveLocale } from "../lib/i18n";
+import lt from "../lib/i18n/lt.json";
 import ptBR from "../lib/i18n/pt-BR.json";
 import ru from "../lib/i18n/ru.json";
 import zhTW from "../lib/i18n/zh-TW.json";
 
 describe("interface translations", () => {
-  it("keeps English as the default for absent or unsupported preferences", () => {
-    for (const value of [undefined, null, "", "fr", "zh-CN", "../zh-TW", "pt", "pt-PT", "ru-RU"]) {
-      expect(resolveLocale(value)).toBe("en");
+  it("uses Lithuanian as the default for absent or unsupported preferences", () => {
+    for (const value of [undefined, null, "", "fr", "zh-CN", "../zh-TW", "pt", "pt-PT", "ru-RU", "lt-LT"]) {
+      expect(resolveLocale(value)).toBe("lt");
     }
+    expect(resolveLocale("en")).toBe("en");
     expect(resolveLocale("zh-TW")).toBe("zh-TW");
     expect(resolveLocale("pt-BR")).toBe("pt-BR");
     expect(resolveLocale("ru")).toBe("ru");
+    expect(resolveLocale("lt")).toBe("lt");
   });
 
   it("renders both interface languages from the same keys", () => {
@@ -53,7 +56,7 @@ describe("interface translations", () => {
   it("has complete, plain-text translations with matching interpolation fields", () => {
     const placeholders = (text: string) =>
       [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
-    for (const catalog of [zhTW, ptBR, ru]) {
+    for (const catalog of [zhTW, ptBR, ru, lt]) {
       for (const [source, translation] of Object.entries(catalog)) {
         expect(translation.trim(), source).not.toBe("");
         expect(placeholders(translation), source).toEqual(placeholders(source));
@@ -97,6 +100,24 @@ describe("interface translations", () => {
       ru["Sent"],
       ru["Owner"],
       ru["Active"],
+      "CUSTOM_STATUS",
+    ]);
+  });
+
+  it("keeps the Lithuanian catalog on exactly the same keys", () => {
+    expect(Object.keys(lt).sort()).toEqual(Object.keys(zhTW).sort());
+  });
+
+  it("renders Lithuanian with interpolation and display labels", () => {
+    const { t, label } = createI18n("lt");
+    expect(t("Campaigns")).toBe("Kampanijos");
+    expect(t("Settings")).toBe("Nustatymai");
+    expect(t("{count} campaigns", { count: 3 })).toBe("Kampanijos: 3");
+    expect(t("Hello, {name}!", { name: "Erika" })).toBe("Labas, Erika!");
+    expect(["SENT", "OWNER", "active", "CUSTOM_STATUS"].map(label)).toEqual([
+      lt["Sent"],
+      lt["Owner"],
+      lt["Active"],
       "CUSTOM_STATUS",
     ]);
   });

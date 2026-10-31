@@ -33,8 +33,25 @@ describe("language preference", () => {
     expect(t("Settings")).toBe("Настройки");
   });
 
-  it("falls back to English for an invalid cookie", async () => {
+  it("renders Lithuanian from the saved cookie", async () => {
+    store.get.mockReturnValue({ value: "lt" });
+    const { locale, t } = await getI18n();
+    expect(locale).toBe("lt");
+    expect(t("Settings")).toBe("Nustatymai");
+  });
+
+  it("falls back to Lithuanian for an invalid cookie", async () => {
     store.get.mockReturnValue({ value: "unsupported" });
+    expect((await getI18n()).locale).toBe("lt");
+  });
+
+  it("defaults to Lithuanian when no cookie is set", async () => {
+    store.get.mockReturnValue(undefined);
+    expect((await getI18n()).locale).toBe("lt");
+  });
+
+  it("keeps English when it was chosen explicitly", async () => {
+    store.get.mockReturnValue({ value: "en" });
     expect((await getI18n()).locale).toBe("en");
   });
 

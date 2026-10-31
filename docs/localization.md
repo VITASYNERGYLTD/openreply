@@ -1,6 +1,6 @@
 # Interface languages
 
-OpenReply defaults to English. Choose **English**, **繁體中文**, **Português (Brasil)** or **Русский** in the dashboard
+OpenReply defaults to Lithuanian. Choose **English**, **繁體中文**, **Português (Brasil)**, **Русский** or **Lietuvių** in the dashboard
 sidebar, under **Settings → Interface language**, or on the sign-in screen.
 The choice is stored in a browser cookie for one year and applies to the
 dashboard, sign-in screens, workspace invitations, and shared campaign reports.
@@ -17,7 +17,7 @@ interface translation's scope.
 ## Adding or changing copy
 
 - `lib/i18n/zh-TW.json` maps English source copy to Traditional Chinese and
-  `lib/i18n/pt-BR.json` to Brazilian Portuguese, `lib/i18n/ru.json` to Russian. All catalogs must carry exactly
+  `lib/i18n/pt-BR.json` to Brazilian Portuguese, `lib/i18n/ru.json` to Russian, `lib/i18n/lt.json` to Lithuanian. All catalogs must carry exactly
   the same keys; a missing key fails the typecheck. Use complete sentences with
   named placeholders when word order can vary.
 - Client components use `useI18n()`; server components use `await getI18n()`.
@@ -33,7 +33,8 @@ interface translation's scope.
 ## Rendering and persistence
 
 The locale cookie is validated on the server; missing or unsupported values
-fall back to English. A server action saves it and re-renders the current route
+fall back to Lithuanian (`DEFAULT_LOCALE` in `lib/i18n/index.ts`). Public
+marketing pages stay English. A server action saves it and re-renders the current route
 without remounting the editor. The action sets a same-site, HTTP-only cookie,
 with the secure flag in production. There is no translation dependency, new
 database column, or change to the sending worker.
@@ -46,11 +47,11 @@ document language while mounted and restores it when leaving these routes.
 ## Validation
 
 Run the contribution checks in `CONTRIBUTING.md`. The locale unit tests cover
-preference validation, persistence, English fallback, interpolation, and status
+preference validation, persistence, Lithuanian fallback, interpolation, and status
 labels. For browser verification:
 
-1. Start with no locale cookie: sign-in should display English.
-2. Switch to Traditional Chinese (and again to Brazilian Portuguese), reload, and navigate to another localized
+1. Start with no locale cookie: sign-in should display Lithuanian.
+2. Switch to Traditional Chinese (and again to Brazilian Portuguese, Russian and Lithuanian), reload, and navigate to another localized
    route: the selected language, labels, and dates should remain consistent.
 3. In the campaign editor, change a message and toggle an option without saving.
    Switch languages: both draft values and the selected post should remain.
