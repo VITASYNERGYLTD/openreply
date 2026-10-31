@@ -136,6 +136,9 @@ You can skip the entire Meta app section below and continue at [Test it end to e
 
 ## The Meta app
 
+**New apps with API setup with Unified login:** use [the Unified Login guide](unified-login.md).
+The legacy Instagram App ID instructions below apply to Instagram Login apps.
+
 **Direct Meta connections only.** Zernio users skip this section.
 
 This is the slow part. The code works out of the box; getting Meta to send you comment events is where people lose an afternoon. Every step here exists because skipping it breaks something later. Have your Vercel domain from Step 3 ready, you will paste it in a few times.
