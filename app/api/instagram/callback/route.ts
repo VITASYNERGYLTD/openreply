@@ -10,6 +10,7 @@ import {
   verifyOAuthState,
 } from "@/lib/meta/oauth";
 import { canManageWorkspace } from "@/lib/workspace-access";
+import { connectUnifiedAccounts } from "@/lib/meta/unified";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -43,6 +44,53 @@ export async function GET(request: NextRequest) {
 
   try {
     const redirectUri = `${baseUrl}/api/instagram/callback`;
+    if (process.env.META_LOGIN_CONFIG_ID) {
+      const accounts = await connectUnifiedAccounts(code, redirectUri);
+      // Check every shared asset before storing any. Never move an account
+      // belonging to another workspace or connection provider.
+      for (const account of accounts) {
+        const connection = await canConnectInstagramAccount({
+          workspaceId: state.workspaceId, instagramId: account.instagramId,
+        });
+        if (!connection.allowed) {
+          return NextResponse.redirect(`${baseUrl}/settings?instagram=already_connected`);
+        }
+      }
+      const subscriptions = await Promise.all(accounts.map(async (account) => {
+        try {
+          return Boolean((await subscribeInstagramAccountToWebhooks(
+            account.instagramId, account.credentials
+          )).success);
+        } catch {
+          return false;
+        }
+      }));
+      await prisma.$transaction(async (tx) => {
+        for (const [index, account] of accounts.entries()) {
+          const existing = await tx.instagramAccount.findUnique({
+            where: { instagramId: account.instagramId },
+          });
+          if (existing && (existing.workspaceId !== state.workspaceId || existing.provider !== "META")) {
+            throw new Error("Instagram account is already connected to another workspace or provider");
+          }
+          const data = {
+            username: account.username,
+            accessToken: encryptToken(account.credentials),
+            tokenExpiresAt: account.tokenExpiresAt,
+            webhookSubscribed: subscriptions[index],
+          };
+          if (existing) {
+            await tx.instagramAccount.update({ where: { id: existing.id }, data });
+          } else {
+            await tx.instagramAccount.create({ data: {
+              ...data, workspaceId: state.workspaceId,
+              instagramId: account.instagramId, provider: "META",
+            } });
+          }
+        }
+      });
+      return NextResponse.redirect(`${baseUrl}/dashboard?connected=true`);
+    }
     const { accessToken: shortLivedToken } = await exchangeCodeForToken(
       code,
       redirectUri

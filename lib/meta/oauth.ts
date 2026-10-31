@@ -88,6 +88,18 @@ export function verifyOAuthState(state: string | null): OAuthStatePayload | null
 }
 
 export function getAuthorizationUrl(redirectUri: string, state: string): string {
+  if (process.env.META_LOGIN_CONFIG_ID) {
+    const params = new URLSearchParams({
+      client_id: requireEnv("FACEBOOK_APP_ID"),
+      config_id: requireEnv("META_LOGIN_CONFIG_ID"),
+      redirect_uri: redirectUri,
+      response_type: "code",
+      override_default_response_type: "true",
+      prompt: "login",
+      state,
+    });
+    return `https://www.facebook.com/dialog/oauth?${params}`;
+  }
   const params = new URLSearchParams({
     client_id: requireEnv("INSTAGRAM_APP_ID"),
     redirect_uri: redirectUri,

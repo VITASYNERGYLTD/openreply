@@ -37,7 +37,10 @@ const INSTAGRAM_OAUTH_ENV = [
 ] as const;
 
 export function getMissingInstagramOAuthEnv(): string[] {
-  return INSTAGRAM_OAUTH_ENV.filter((name) => {
+  const required = process.env.META_LOGIN_CONFIG_ID
+    ? ["FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "ENCRYPTION_KEY", "NEXTAUTH_SECRET"]
+    : INSTAGRAM_OAUTH_ENV;
+  return required.filter((name) => {
     const value = process.env[name];
     if (!value) return true;
     // A malformed key fails later inside encryptToken, after the user has
